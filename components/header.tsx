@@ -12,7 +12,7 @@ export default function Header() {
   const { user, logout, isLoading } = useAuth(); // Use custom auth hook
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-mjdat-dark text-mjdat-text-light border-b border-mjdat-green/20 sticky top-0 z-50">
+    <header className="flex items-center justify-around px-4 py-3 bg-mjdat-dark text-mjdat-text-light border-b border-mjdat-green/20 sticky top-0 z-50">
       <Link
         href="/"
         className="flex items-center gap-2 text-mjdat-green text-xl font-bold"
@@ -110,9 +110,7 @@ export default function Header() {
             </Button>
           )
         )}
-        <Button className="text-sm font-medium bg-mjdat-green text-mjdat-dark hover:bg-mjdat-light-green transition-colors flex items-center gap-1">
-          Get Started <ArrowRightIcon className="h-4 w-4" />
-        </Button>
+       
       </div>
     </header>
   );
