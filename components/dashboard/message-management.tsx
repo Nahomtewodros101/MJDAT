@@ -1,45 +1,33 @@
 "use client"
+
 import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { EyeIcon, Trash2Icon } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Loader2, EyeIcon, TrashIcon } from "lucide-react"
+import type { Message } from "@/types" // Import Message from shared types
 
-interface ContactMessage {
-  id: string
-  name: string
-  email: string
-  phone?: string | null
-  company?: string | null
-  serviceInterest?: string | null
-  subject: string
-  message: string
-  receivedAt: string
-  isRead: boolean
-}
-
-export default function MessageManagement() {
-  const [messages, setMessages] = useState<ContactMessage[]>([])
+export function MessageManagement() {
+  const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [viewingMessage, setViewingMessage] = useState<Message | null>(null)
+  const [formLoading, setFormLoading] = useState(false)
 
   const fetchMessages = async () => {
     setLoading(true)
-    setError(null)
     try {
-      const res = await fetch("/api/admin/messages")
-      if (res.ok) {
-        const data = await res.json()
-        setMessages(data)
-      } else {
-        const errorData = await res.json()
-        setError(errorData.error || "Failed to fetch messages.")
+      const response = await fetch("/api/admin/messages")
+      if (!response.ok) {
+        throw new Error("Failed to fetch messages")
       }
-    } catch (err) {
-      console.error("Fetch messages error:", err)
-      setError("An unexpected error occurred while fetching messages.")
+      const data = await response.json()
+      setMessages(data)
+    } catch (error: any) {
+     
     } finally {
       setLoading(false)
     }
@@ -49,133 +37,176 @@ export default function MessageManagement() {
     fetchMessages()
   }, [])
 
-  const handleMarkAsRead = async (messageId: string, isRead: boolean) => {
-    try {
-      const res = await fetch("/api/admin/messages", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: messageId, isRead }),
-      })
-      if (res.ok) {
-        fetchMessages() // Re-fetch messages to update the list
-      } else {
-        const errorData = await res.json()
-        alert(errorData.error || "Failed to update message status.")
-      }
-    } catch (err) {
-      console.error("Update message status error:", err)
-      alert("An unexpected error occurred.")
+  const handleOpenDialog = (message: Message) => {
+    setViewingMessage(message)
+    setIsDialogOpen(true)
+    if (!message.read) {
+      handleMarkAsRead(message.id, true)
     }
   }
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setViewingMessage(null)
+  }
+
+  const handleMarkAsRead = async (id: string, readStatus: boolean) => {
+    setFormLoading(true)
+    try {
+      const response = await fetch(`/api/admin/messages?id=${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ read: readStatus }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update message status.")
+      }
+
+      
+      fetchMessages() // Refresh the list
+      if (viewingMessage && viewingMessage.id === id) {
+        setViewingMessage((prev) => (prev ? { ...prev, read: readStatus } : null))
+      }
+    } catch (error: any) {
+    
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const handleDeleteMessage = async (id: string) => {
     if (!confirm("Are you sure you want to delete this message? This action cannot be undone.")) {
       return
     }
+
+    setLoading(true)
     try {
-      const res = await fetch("/api/admin/messages", {
+      const response = await fetch(`/api/admin/messages?id=${id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: messageId }),
       })
-      if (res.ok) {
-        alert("Message deleted successfully!")
-        fetchMessages() // Re-fetch messages to update the list
-      } else {
-        const errorData = await res.json()
-        alert(errorData.error || "Failed to delete message.")
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete message.")
       }
-    } catch (err) {
-      console.error("Delete message error:", err)
-      alert("An unexpected error occurred.")
+
+      
+      fetchMessages()
+    } catch (error: any) {
+      
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (loading) return <p className="text-center text-mjdat-green">Loading messages...</p>
-  if (error) return <p className="text-center text-red-500">{error}</p>
-
   return (
-    <div className="bg-mjdat-dark/50 border border-mjdat-green/20 rounded-lg p-6 shadow-lg">
-      <Table>
-        <TableHeader>
-          <TableRow className="text-mjdat-green">
-            <TableHead>Read</TableHead>
-            <TableHead>Sender</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Subject</TableHead>
-            <TableHead>Received At</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {messages.map((msg) => (
-            <TableRow key={msg.id} className={msg.isRead ? "text-gray-500" : "text-gray-300 font-medium"}>
-              <TableCell>
-                <Checkbox
-                  checked={msg.isRead}
-                  onCheckedChange={(checked: boolean) => handleMarkAsRead(msg.id, checked)}
-                />
-              </TableCell>
-              <TableCell>{msg.name}</TableCell>
-              <TableCell>{msg.email}</TableCell>
-              <TableCell className="max-w-[200px] truncate">{msg.subject}</TableCell>
-              <TableCell>{new Date(msg.receivedAt).toLocaleDateString()}</TableCell>
-              <TableCell className="flex gap-2">
-                <Dialog onOpenChange={(open: boolean) => !open && setSelectedMessage(null)}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedMessage(msg)}>
+    <Card>
+      <CardHeader>
+        <CardTitle>Contact Messages</CardTitle>
+        <CardDescription>View and manage messages submitted through the contact form.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-48">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Read</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Received At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {messages.map((message) => (
+                <TableRow key={message.id} className={message.read ? "text-muted-foreground" : "font-medium"}>
+                  <TableCell>
+                    <Checkbox
+                      checked={message.read}
+                      onCheckedChange={(checked: boolean) => handleMarkAsRead(message.id, checked)}
+                      disabled={formLoading}
+                    />
+                  </TableCell>
+                  <TableCell>{message.name}</TableCell>
+                  <TableCell>{message.email}</TableCell>
+                  <TableCell>{message.subject || "N/A"}</TableCell>
+                  <TableCell>{new Date(message.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(message)}>
                       <EyeIcon className="h-4 w-4" />
+                      <span className="sr-only">View</span>
                     </Button>
-                  </DialogTrigger>
-                  {selectedMessage && (
-                    <DialogContent className="bg-mjdat-dark text-mjdat-text-light border-mjdat-green/20">
-                      <DialogHeader>
-                        <DialogTitle className="text-mjdat-green">Message from {selectedMessage.name}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <strong>Email:</strong> {selectedMessage.email}
-                        </p>
-                        {selectedMessage.phone && (
-                          <p>
-                            <strong>Phone:</strong> {selectedMessage.phone}
-                          </p>
-                        )}
-                        {selectedMessage.company && (
-                          <p>
-                            <strong>Company:</strong> {selectedMessage.company}
-                          </p>
-                        )}
-                        {selectedMessage.serviceInterest && (
-                          <p>
-                            <strong>Service Interest:</strong> {selectedMessage.serviceInterest}
-                          </p>
-                        )}
-                        <p>
-                          <strong>Subject:</strong> {selectedMessage.subject}
-                        </p>
-                        <p>
-                          <strong>Message:</strong>
-                        </p>
-                        <p className="whitespace-pre-wrap border border-mjdat-green/10 p-3 rounded-md bg-mjdat-dark/30">
-                          {selectedMessage.message}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Received: {new Date(selectedMessage.receivedAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </DialogContent>
-                  )}
-                </Dialog>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteMessage(msg.id)}>
-                  <Trash2Icon className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {messages.length === 0 && <p className="text-center text-gray-400 mt-4">No contact messages found.</p>}
-    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteMessage(message.id)}>
+                      <TrashIcon className="h-4 w-4 text-red-500" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Message Details</DialogTitle>
+            <CardDescription>Review the full message content.</CardDescription>
+          </DialogHeader>
+          {viewingMessage && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">From:</Label>
+                <div className="col-span-3 font-medium">
+                  {viewingMessage.name} ({viewingMessage.email})
+                </div>
+              </div>
+              {viewingMessage.subject && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Subject:</Label>
+                  <div className="col-span-3">{viewingMessage.subject}</div>
+                </div>
+              )}
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">Message:</Label>
+                <div className="col-span-3 border rounded-md p-3 bg-muted/50 min-h-[150px] whitespace-pre-wrap text-sm">
+                  {viewingMessage.message}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Received At:</Label>
+                <div className="col-span-3">{new Date(viewingMessage.createdAt).toLocaleString()}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Status:</Label>
+                <div className="col-span-3">
+                  <Checkbox
+                    checked={viewingMessage.read}
+                    onCheckedChange={(checked: boolean) => handleMarkAsRead(viewingMessage.id, checked)}
+                    disabled={formLoading}
+                  />
+                  <span className="ml-2 text-sm">{viewingMessage.read ? "Read" : "Unread"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseDialog}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   )
 }

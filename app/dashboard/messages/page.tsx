@@ -1,27 +1,19 @@
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-import AnimatedBackground from "@/components/animated-background"
-import { getAuthUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { getAuthUser } from "@/lib/auth"
 import { Role } from "@prisma/client"
-import MessageManagement from "@/components/dashboard/message-management"
+import  {MessageManagement}  from "@/components/dashboard/message-management"
 
-export default async function ManageMessagesPage() {
+export default async function MessagesPage() {
   const user = await getAuthUser()
 
   if (!user || user.role !== Role.ADMIN) {
-    redirect("/auth/login")
+    redirect("/auth/login") // Redirect non-admins
   }
 
   return (
-    <div className="relative min-h-screen bg-mjdat-dark text-mjdat-text-light overflow-hidden flex flex-col">
-      <AnimatedBackground />
-      <Header />
-      <main className="relative z-10 flex-1 py-16 px-4 max-w-6xl mx-auto w-full">
-        <h1 className="text-4xl md:text-5xl font-bold text-center mb-12 text-mjdat-green">Manage Contact Messages</h1>
-        <MessageManagement />
-      </main>
-      <Footer />
+    <div className="container mx-auto px-4 py-8 md:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold tracking-tight lg:text-4xl mb-8">Contact Messages</h1>
+      <MessageManagement />
     </div>
   )
 }

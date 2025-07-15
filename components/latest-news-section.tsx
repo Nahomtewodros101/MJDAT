@@ -1,56 +1,87 @@
-import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import prisma from "@/lib/prisma"
-import { format } from "date-fns"
-import { ArrowRightIcon } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Image from "next/image";
+import Link from "next/link";
+import type { NewsArticle } from "@/types"; // Import NewsArticle from shared types
 
-export default async function LatestNewsSection() {
-  const newsItems = await prisma.newsAnnouncement.findMany({
-    where: { isPublished: true },
-    orderBy: { publishedAt: "desc" },
-    take: 3, // Limit to 3 news items for the homepage
-  })
+async function getLatestNews(): Promise<NewsArticle[]> {
+  // In a real application, you might fetch this from an external CMS or your own API.
+  // For this example, we'll fetch from our own API route.
+  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/news`, {
+    next: { revalidate: 3600 }, // Revalidate every hour
+  });
+
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error("Failed to fetch news articles");
+  }
+
+  return res.json();
+}
+
+export async function LatestNewsSection() {
+  const newsArticles = await getLatestNews();
+
+  if (newsArticles.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        No news articles available at the moment. Please check back later!
+      </div>
+    );
+  }
 
   return (
-    <section className="w-full max-w-6xl mx-auto py-16">
-      <h2 className="text-4xl font-bold text-center mb-12 text-mjdat-green">Latest News & Announcements</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {newsItems.length > 0 ? (
-          newsItems.map((news) => (
-            <Card key={news.id} className="bg-mjdat-dark/50 border border-mjdat-green/20 text-mjdat-text-light">
+    <section className="w-full py-12 md:py-24 lg:py-32">
+      <div className="container grid gap-8 px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+              Our Latest News
+            </h2>
+            <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+              Stay up-to-date with the latest from MJDAt Solutions.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {newsArticles.map((article) => (
+            <Card key={article.id} className="flex flex-col overflow-hidden">
+              {article.imageUrl && (
+                <Image
+                  alt={article.title}
+                  className="aspect-video w-full object-cover"
+                  height={225}
+                  src={article.imageUrl || "/placeholder.svg"}
+                  width={400}
+                />
+              )}
               <CardHeader>
-                {news.imageUrl && (
-                  <img
-                    src={news.imageUrl || "/placeholder.svg"}
-                    alt={news.title}
-                    className="rounded-md mb-4 w-full h-48 object-cover"
-                  />
-                )}
-                <CardTitle className="text-mjdat-green">{news.title}</CardTitle>
-                <p className="text-sm text-gray-400">Published: {format(news.publishedAt, "PPP")}</p>
+                <CardTitle>{article.title}</CardTitle>
+                <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
+                  By {article.author} |{" "}
+                  {new Date(article.publishedAt).toLocaleDateString()}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-300 line-clamp-3">{news.content}</p>
-                <Link href={`/news/${news.id}`} className="text-mjdat-light-green hover:underline text-sm mt-4 block">
-                  Read More &rarr;
+              <CardContent className="flex-1">
+                <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+                  {article.content}
+                </p>
+                <Link
+                  className="text-blue-600 hover:underline text-sm mt-2 inline-block dark:text-blue-400"
+                  href={`/news/${article.id}`}
+                >
+                  Read More
                 </Link>
               </CardContent>
             </Card>
-          ))
-        ) : (
-          <p className="col-span-full text-center text-gray-400">No news or announcements at the moment.</p>
-        )}
-      </div>
-      {newsItems.length > 0 && (
-        <div className="text-center mt-12">
-          <Link
-            href="/news"
-            className="inline-flex items-center bg-mjdat-green text-mjdat-dark hover:bg-mjdat-light-green transition-colors text-lg px-8 py-3 rounded-md font-medium"
-          >
-            View All News <ArrowRightIcon className="h-5 w-5 ml-2" />
-          </Link>
+          ))}
         </div>
-      )}
+      </div>
     </section>
-  )
+  );
 }

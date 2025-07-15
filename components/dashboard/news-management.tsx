@@ -1,249 +1,241 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PlusIcon, EditIcon, Trash2Icon } from "lucide-react"
-import { format } from "date-fns"
+import { Loader2, PlusIcon, EditIcon, TrashIcon } from "lucide-react"
+import type { NewsArticle } from "@/types" // Import NewsArticle from shared types
 
-interface NewsAnnouncement {
-  id: string
-  title: string
-  content: string
-  imageUrl?: string | null
-  publishedAt: string
-  isPublished: boolean
-}
-
-export default function NewsManagement() {
-  const [newsItems, setNewsItems] = useState<NewsAnnouncement[]>([])
+export function NewsManagement() {
+  const [articles, setArticles] = useState<NewsArticle[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [formState, setFormState] = useState<Partial<NewsAnnouncement>>({
-    title: "",
-    content: "",
-    imageUrl: "",
-    isPublished: true,
-  })
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null)
+  const [formTitle, setFormTitle] = useState("")
+  const [formContent, setFormContent] = useState("")
+  const [formAuthor, setFormAuthor] = useState("")
+  const [formImageUrl, setFormImageUrl] = useState("")
+  const [formLoading, setFormLoading] = useState(false)
 
-  const fetchNews = async () => {
+
+  const fetchArticles = async () => {
     setLoading(true)
-    setError(null)
     try {
-      const res = await fetch("/api/admin/news")
-      if (res.ok) {
-        const data = await res.json()
-        setNewsItems(data)
-      } else {
-        const errorData = await res.json()
-        setError(errorData.error || "Failed to fetch news.")
+      const response = await fetch("/api/admin/news")
+      if (!response.ok) {
+        throw new Error("Failed to fetch news articles")
       }
-    } catch (err) {
-      console.error("Fetch news error:", err)
-      setError("An unexpected error occurred while fetching news.")
+      const data = await response.json()
+      setArticles(data)
+    } catch (error: any) {
+     
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchNews()
+    fetchArticles()
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement
-    setFormState((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }))
+  const handleOpenDialog = (article?: NewsArticle) => {
+    if (article) {
+      setEditingArticle(article)
+      setFormTitle(article.title)
+      setFormContent(article.content)
+      setFormAuthor(article.author)
+      setFormImageUrl(article.imageUrl || "")
+    } else {
+      setEditingArticle(null)
+      setFormTitle("")
+      setFormContent("")
+      setFormAuthor("")
+      setFormImageUrl("")
+    }
+    setIsDialogOpen(true)
   }
 
-  const handleEditClick = (news: NewsAnnouncement) => {
-    setEditingId(news.id)
-    setFormState({
-      title: news.title,
-      content: news.content,
-      imageUrl: news.imageUrl || "",
-      isPublished: news.isPublished,
-    })
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setEditingArticle(null)
+    setFormTitle("")
+    setFormContent("")
+    setFormAuthor("")
+    setFormImageUrl("")
   }
 
-  const handleCancelEdit = () => {
-    setEditingId(null)
-    setFormState({ title: "", content: "", imageUrl: "", isPublished: true })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    setFormLoading(true)
 
-    const method = editingId ? "PUT" : "POST"
-    const url = editingId ? `/api/admin/news?id=${editingId}` : "/api/admin/news"
+    const method = editingArticle ? "PUT" : "POST"
+    const url = editingArticle ? `/api/admin/news?id=${editingArticle.id}` : "/api/admin/news"
+    const body = { title: formTitle, content: formContent, author: formAuthor, imageUrl: formImageUrl || null }
 
     try {
-      const res = await fetch(url, {
+      const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formState, id: editingId }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       })
 
-      const data = await res.json()
-
-      if (res.ok) {
-        alert(`News ${editingId ? "updated" : "created"} successfully!`)
-        handleCancelEdit()
-        fetchNews()
-      } else {
-        setError(data.error || `Failed to ${editingId ? "update" : "create"} news.`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to ${editingArticle ? "update" : "create"} article.`)
       }
-    } catch (err) {
-      console.error("News form submission error:", err)
-      setError("An unexpected error occurred.")
+
+     
+      handleCloseDialog()
+      fetchArticles() // Refresh the list
+    } catch (error: any) {
+      
     } finally {
-      setIsSubmitting(false)
+      setFormLoading(false)
     }
   }
 
-  const handleDeleteNews = async (newsId: string) => {
-    if (!confirm("Are you sure you want to delete this news announcement? This action cannot be undone.")) {
+  const handleDeleteArticle = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this article? This action cannot be undone.")) {
       return
     }
+
+    setLoading(true)
     try {
-      const res = await fetch("/api/admin/news", {
+      const response = await fetch(`/api/admin/news?id=${id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: newsId }),
       })
-      if (res.ok) {
-        alert("News announcement deleted successfully!")
-        fetchNews()
-      } else {
-        const errorData = await res.json()
-        alert(errorData.error || "Failed to delete news.")
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete article.")
       }
-    } catch (err) {
-      console.error("Delete news error:", err)
-      alert("An unexpected error occurred.")
+
+      
+      fetchArticles()
+    } catch (error: any) {
+     
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (loading) return <p className="text-center text-mjdat-green">Loading news...</p>
-  if (error) return <p className="text-center text-red-500">{error}</p>
-
   return (
-    <div className="space-y-8">
-      <Card className="bg-mjdat-dark/50 border border-mjdat-green/20 text-mjdat-text-light">
-        <CardHeader>
-          <CardTitle className="text-mjdat-green flex items-center gap-2">
-            {editingId ? <EditIcon className="h-6 w-6" /> : <PlusIcon className="h-6 w-6" />}
-            {editingId ? "Edit News Announcement" : "Create New News Announcement"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              name="title"
-              placeholder="Title"
-              value={formState.title || ""}
-              onChange={handleChange}
-              required
-              className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-            />
-            <Textarea
-              name="content"
-              placeholder="Content"
-              value={formState.content || ""}
-              onChange={handleChange}
-              required
-              rows={5}
-              className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-            />
-            <Input
-              name="imageUrl"
-              placeholder="Image URL (optional)"
-              value={formState.imageUrl || ""}
-              onChange={handleChange}
-              className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-            />
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isPublished"
-                name="isPublished"
-                checked={formState.isPublished}
-                onCheckedChange={(checked: boolean) => setFormState((prev) => ({ ...prev, isPublished: checked }))}
-                className="border-mjdat-green/50 data-[state=checked]:bg-mjdat-green data-[state=checked]:text-mjdat-dark"
-              />
-              <label
-                htmlFor="isPublished"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Publish immediately
-              </label>
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                className="flex-1 bg-mjdat-green text-mjdat-dark hover:bg-mjdat-light-green transition-colors py-3"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (editingId ? "Updating..." : "Creating...") : editingId ? "Update News" : "Add News"}
-              </Button>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  className="border-mjdat-green text-mjdat-green hover:bg-mjdat-green/10 bg-transparent"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <h2 className="text-3xl font-semibold mb-6 text-mjdat-green">All News & Announcements</h2>
-      <div className="bg-mjdat-dark/50 border border-mjdat-green/20 rounded-lg p-6 shadow-lg">
-        <Table>
-          <TableHeader>
-            <TableRow className="text-mjdat-green">
-              <TableHead>Title</TableHead>
-              <TableHead>Published</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {newsItems.map((news) => (
-              <TableRow key={news.id} className="text-gray-300">
-                <TableCell className="font-medium">{news.title}</TableCell>
-                <TableCell>{news.isPublished ? "Yes" : "No"}</TableCell>
-                <TableCell>{format(news.publishedAt, "PPP")}</TableCell>
-                <TableCell className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEditClick(news)}>
-                    <EditIcon className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteNews(news.id)}>
-                    <Trash2Icon className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>News Management</CardTitle>
+          <CardDescription>Create, edit, and delete news articles.</CardDescription>
+        </div>
+        <Button onClick={() => handleOpenDialog()}>
+          <PlusIcon className="mr-2 h-4 w-4" /> Add Article
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-48">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Published At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {newsItems.length === 0 && <p className="text-center text-gray-400 mt-4">No news announcements found.</p>}
-      </div>
-    </div>
+            </TableHeader>
+            <TableBody>
+              {articles.map((article) => (
+                <TableRow key={article.id}>
+                  <TableCell className="font-medium">{article.title}</TableCell>
+                  <TableCell>{article.author}</TableCell>
+                  <TableCell>{new Date(article.publishedAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(article)}>
+                      <EditIcon className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteArticle(article.id)}>
+                      <TrashIcon className="h-4 w-4 text-red-500" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{editingArticle ? "Edit News Article" : "Create New News Article"}</DialogTitle>
+            <CardDescription>
+              {editingArticle ? "Update the details for this article." : "Fill in the details to create a new article."}
+            </CardDescription>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="author">Author</Label>
+              <Input
+                id="author"
+                value={formAuthor}
+                onChange={(e) => setFormAuthor(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+              <Input
+                id="imageUrl"
+                value={formImageUrl}
+                onChange={(e) => setFormImageUrl(e.target.value)}
+                placeholder="e.g., https://example.com/image.jpg"
+                disabled={formLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">Content</Label>
+              <Textarea
+                id="content"
+                value={formContent}
+                onChange={(e) => setFormContent(e.target.value)}
+                rows={10}
+                required
+                disabled={formLoading}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={formLoading}>
+                {formLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {editingArticle ? "Save Changes" : "Create Article"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Card>
   )
 }

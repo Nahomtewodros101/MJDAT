@@ -1,29 +1,19 @@
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import AnimatedBackground from "@/components/animated-background";
-import { getAuthUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { Role } from "@prisma/client";
-import UserManagement from "@/components/dashboard/user-management";
+import { redirect } from "next/navigation"
+import { getAuthUser } from "@/lib/auth"
+import { Role } from "@prisma/client"
+import { UserManagement } from "@/components/dashboard/user-management"
 
-export default async function ManageUsersPage() {
-  const user = await getAuthUser();
+export default async function UsersPage() {
+  const user = await getAuthUser()
 
   if (!user || user.role !== Role.ADMIN) {
-    redirect("/auth/login");
+    redirect("/auth/login") // Redirect non-admins
   }
 
   return (
-    <div className="relative min-h-screen bg-mjdat-dark text-mjdat-text-light overflow-hidden flex flex-col">
-      <AnimatedBackground />
-      <Header />
-      <main className="relative z-10 flex-1 py-16 px-4 max-w-6xl mx-auto w-full">
-        <h1 className="text-4xl md:text-5xl font-bold text-center mb-12 text-mjdat-green">
-          Manage Users
-        </h1>
-        <UserManagement />
-      </main>
-      <Footer />
+    <div className="container mx-auto px-4 py-8 md:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold tracking-tight lg:text-4xl mb-8">User Management</h1>
+      <UserManagement />
     </div>
-  );
+  )
 }
