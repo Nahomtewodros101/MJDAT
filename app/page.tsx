@@ -24,6 +24,7 @@ import LatestNewsSection from "@/components/latest-news-section";
 import { InteractiveServiceCard } from "@/components/interactive-service-card"; 
 
 export default function HomePage() {
+
   return (
     <div className="relative min-h-screen bg-mjdat-dark text-mjdat-text-light overflow-hidden">
       <AnimatedBackground />

@@ -13,6 +13,11 @@ export default async function NewsPage() {
     where: { isPublished: true },
     orderBy: { publishedAt: "desc" },
   })
+  if (!newsItems) {
+    return {
+      notFound: true,
+    }
+  }
 
   return (
     <div className="relative min-h-screen bg-mjdat-dark text-mjdat-text-light overflow-hidden flex flex-col">

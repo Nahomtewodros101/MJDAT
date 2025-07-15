@@ -72,6 +72,11 @@ export function JobForm({ initialData, onSuccess }: JobFormProps) {
     } finally {
       setLoading(false);
     }
+    if (!initialData?.id) {
+    return {
+      notFound: true,
+    }
+  }
   };
 
   return (
