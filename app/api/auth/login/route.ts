@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { generateToken, setAuthCookie } from "@/lib/auth"
-import { comparePassword } from "@/lib/auth-server-utils" // Import from auth-server-utils
+import { createSession } from "@/lib/auth"
+import { comparePassword } from "@/lib/auth-server-utils"
 
 export async function POST(request: Request) {
   try {
@@ -15,15 +15,20 @@ export async function POST(request: Request) {
       where: { email },
     })
 
-    if (!user || !(await comparePassword(password, user.password))) {
+    if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    const token = await generateToken({ id: user.id, email: user.email, role: user.role, name: user.name || undefined })
-    setAuthCookie(token)
+    const passwordMatch = await comparePassword(password, user.password)
+
+    if (!passwordMatch) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+    }
+
+    await createSession(user.id, user.email, user.role)
 
     return NextResponse.json(
-      { message: "Login successful", user: { id: user.id, email: user.email, name: user.name, role: user.role } },
+      { message: "Login successful", user: { id: user.id, email: user.email, role: user.role, name: user.name } },
       { status: 200 },
     )
   } catch (error) {

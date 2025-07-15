@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import prisma from "./prisma"
 
 // For better security, you should store this in environment variables
-const secretKey = process.env.JWT_SECRET_KEY || "supersecretjwtkey"
+const secretKey = process.env.JWT_SECRET || "supersecretjwtkey" // Changed to JWT_SECRET
 const key = new TextEncoder().encode(secretKey)
 
 export interface UserPayload extends JWTPayload {
