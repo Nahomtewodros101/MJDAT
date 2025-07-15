@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context" // Import custom auth hook
+import Image from "next/image"
 
 export default function RegisterForm() {
   const [name, setName] = useState("")
@@ -31,7 +32,7 @@ export default function RegisterForm() {
 
   return (
     <div className="w-full max-w-md bg-mjdat-dark/50 border border-mjdat-green/20 rounded-lg p-8 shadow-lg text-center">
-      <img src="/placeholder.svg?height=64&width=64" alt="MJDAt Solutions Logo" className="mx-auto mb-6" />
+      <Image src="/MJDAT/MJDAT9.png" alt="MJDAt Solutions Logo" className="mx-auto mb-6" />
       <h1 className="text-3xl font-bold mb-2 text-mjdat-green">Register</h1>
       <p className="text-gray-300 mb-8">Create your MJDAt Solutions account.</p>
 
