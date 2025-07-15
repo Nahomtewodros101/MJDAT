@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(USER) // ADMIN or USER
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  jobApplications JobApplication[]
+}
+
+model JobOpening {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  location      String
+  type          String // e.g., Full-time, Part-time, Contract
+  salary        String?
+  postedAt      DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  applications  JobApplication[]
+}
+
+model JobApplication {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  jobOpeningId  String    @db.ObjectId
+  jobOpening    JobOpening @relation(fields: [jobOpeningId], references: [id], onDelete: Cascade)
+  userId        String    @db.ObjectId
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverLetter   String
+  cvUrl         String // URL to the uploaded CV
+  appliedAt     DateTime  @default(now())
+  status        String    @default("Pending") // e.g., Pending, Reviewed, Accepted, Rejected
+}
+
+model ContactMessage {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String
+  phone         String?
+  company       String?
+  serviceInterest String?
+  subject       String
+  message       String
+  receivedAt    DateTime  @default(now())
+  isRead        Boolean   @default(false)
+}
+
+model NewsAnnouncement {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  content       String
+  imageUrl      String? // URL to the image
+  publishedAt   DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isPublished   Boolean   @default(true)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
