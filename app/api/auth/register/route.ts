@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth"
+import { generateToken, setAuthCookie } from "@/lib/auth"
+import { hashPassword } from "@/lib/auth-server-utils"
 import prisma from "@/lib/prisma"
 import { sendEmail } from "@/lib/mail"
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       },
     })
 
-    const token = generateToken({ id: newUser.id, email: newUser.email, role: newUser.role })
+    const token = await generateToken({ id: newUser.id, email: newUser.email, role: newUser.role })
     setAuthCookie(token)
 
     // Send registration confirmation email

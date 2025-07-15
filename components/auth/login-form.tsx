@@ -37,6 +37,8 @@ export default function LoginForm() {
         src="/MJDAT/MJDAT9.png"
         alt="MJDAt Solutions Logo"
         className="mx-auto mb-6"
+        width={200}
+        height={200}
       />
       <h1 className="text-3xl font-bold mb-2 text-mjdat-green">Sign In</h1>
       <p className="text-gray-300 mb-8">Access your MJDAt Solutions account.</p>

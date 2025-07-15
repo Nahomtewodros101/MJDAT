@@ -1,10 +1,10 @@
-import type React from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import AnimatedBackground from "@/components/animated-background"
 import Link from "next/link"
 import { HeadsetIcon, MailIcon, MessageSquareIcon, ArrowRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ArrowLeftIcon } from "@/components/icons/arrow-left-icon"
 
 export default function SupportPage() {
   return (
@@ -56,25 +56,5 @@ export default function SupportPage() {
       </main>
       <Footer />
     </div>
-  )
-}
-
-function ArrowLeftIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m12 19-7-7 7-7" />
-      <path d="M19 12H5" />
-    </svg>
   )
 }

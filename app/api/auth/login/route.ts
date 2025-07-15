@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { comparePassword, generateToken, setAuthCookie } from "@/lib/auth"
+import { generateToken, setAuthCookie } from "@/lib/auth"
+import { comparePassword } from "@/lib/auth-server-utils"
 import prisma from "@/lib/prisma"
 import { sendEmail } from "@/lib/mail"
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const token = generateToken({ id: user.id, email: user.email, role: user.role })
-    setAuthCookie(token)
+    setAuthCookie(toke)
 
     // Send login notification email
     await sendEmail({

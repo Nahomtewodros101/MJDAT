@@ -32,7 +32,7 @@ export default function RegisterForm() {
 
   return (
     <div className="w-full max-w-md bg-mjdat-dark/50 border border-mjdat-green/20 rounded-lg p-8 shadow-lg text-center">
-      <Image src="/MJDAT/MJDAT9.png" alt="MJDAt Solutions Logo" className="mx-auto mb-6" />
+      <Image src="/MJDAT/MJDAT9.png" alt="MJDAt Solutions Logo" className="mx-auto mb-6" width={200} height={200} />
       <h1 className="text-3xl font-bold mb-2 text-mjdat-green">Register</h1>
       <p className="text-gray-300 mb-8">Create your MJDAt Solutions account.</p>
 
