@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.x.x",
     "framer-motion": "^12.23.6",
+    "jose": "^6.0.11",
     "jsonwebtoken": "^9.x.x",
     "lucide-react": "^0.395.0",
     "mongodb": "^6.17.0",
