@@ -1,120 +1,162 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import type React from "react";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
-export default function JobForm() {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [location, setLocation] = useState("")
-  const [type, setType] = useState("")
-  const [salary, setSalary] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+interface JobFormProps {
+  initialData?: {
+    id?: string;
+    title: string;
+    description: string;
+    location: string;
+    type: string;
+    salary?: string;
+  };
+  onSuccess?: () => void;
+}
+
+export function JobForm({ initialData, onSuccess }: JobFormProps) {
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(
+    initialData?.description || ""
+  );
+  const [location, setLocation] = useState(initialData?.location || "");
+  const [type, setType] = useState(initialData?.type || "");
+  const [salary, setSalary] = useState(initialData?.salary || "");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    e.preventDefault();
+    setLoading(true);
+
+    const method = initialData?.id ? "PUT" : "POST";
+    const url = initialData?.id
+      ? `/api/admin/jobs?id=${initialData.id}`
+      : "/api/admin/jobs";
 
     try {
-      const response = await fetch("/api/auth/jobs", {
-        method: "POST",
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title, description, location, type, salary }),
-      })
+      });
 
-      const data = await response.json()
-
-      if (response.ok) {
-        alert("Job opening created successfully!")
-        setTitle("")
-        setDescription("")
-        setLocation("")
-        setType("")
-        setSalary("")
-        router.refresh() // Revalidate data on the page
-      } else {
-        setError(data.error || "Failed to create job opening.")
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save job opening.");
       }
-    } catch (err) {
-      console.error("Create job error:", err)
-      setError("An unexpected error occurred.")
+
+     
+      onSuccess?.();
+    } catch (error: any) {
+      
     } finally {
-      setIsSubmitting(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Card className="bg-mjdat-dark/50 border border-mjdat-green/20 text-mjdat-text-light mb-8">
+    <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle className="text-mjdat-green flex items-center gap-2">
-          <PlusIcon className="h-6 w-6" /> Create New Job Opening
+        <CardTitle>
+          {initialData?.id ? "Edit Job Opening" : "Create New Job Opening"}
         </CardTitle>
+        <CardDescription>
+          {initialData?.id
+            ? "Update the details for this job opening."
+            : "Fill in the details to create a new job opening."}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            placeholder="Job Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-          />
-          <Textarea
-            placeholder="Job Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            rows={5}
-            className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title">Job Title</Label>
             <Input
-              placeholder="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Software Engineer"
               required
-              className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
+              disabled={loading}
             />
-            <Select onValueChange={setType} value={type} required>
-              <SelectTrigger className="w-full bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green">
-                <SelectValue placeholder="Job Type" />
-              </SelectTrigger>
-              <SelectContent className="bg-mjdat-dark text-mjdat-text-light border-mjdat-green/30">
-                <SelectItem value="Full-time">Full-time</SelectItem>
-                <SelectItem value="Part-time">Part-time</SelectItem>
-                <SelectItem value="Contract">Contract</SelectItem>
-                <SelectItem value="Internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-          <Input
-            placeholder="Salary (e.g., $50,000 - $70,000)"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-            className="bg-mjdat-dark border-mjdat-green/30 text-mjdat-text-light placeholder:text-gray-500 focus:ring-mjdat-green"
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button
-            type="submit"
-            className="w-full bg-mjdat-green text-mjdat-dark hover:bg-mjdat-light-green transition-colors py-3"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Creating..." : "Add Job Opening"}
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Provide a detailed job description..."
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g., Remote, New York, NY"
+                required
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="type">Job Type</Label>
+              <Select value={type} onValueChange={setType} disabled={loading}>
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Full-time">Full-time</SelectItem>
+                  <SelectItem value="Part-time">Part-time</SelectItem>
+                  <SelectItem value="Contract">Contract</SelectItem>
+                  <SelectItem value="Internship">Internship</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="salary">Salary (Optional)</Label>
+            <Input
+              id="salary"
+              value={salary}
+              onChange={(e) => setSalary(e.target.value)}
+              placeholder="e.g., $80,000 - $100,000"
+              disabled={loading}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading
+              ? "Saving..."
+              : initialData?.id
+              ? "Update Job"
+              : "Create Job"}
           </Button>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
