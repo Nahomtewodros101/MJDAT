@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Suspense } from "react";
 import LatestNewsSection from "@/components/latest-news-section";
-import { InteractiveServiceCard } from "@/components/interactive-service-card"; // New import
+import { InteractiveServiceCard } from "@/components/interactive-service-card"; 
 
 export default function HomePage() {
   return (

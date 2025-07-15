@@ -1,45 +1,56 @@
 import { NextResponse } from "next/server"
-import { generateToken, setAuthCookie } from "@/lib/auth"
-import { hashPassword } from "@/lib/auth-server-utils"
 import prisma from "@/lib/prisma"
+import { generateToken, setAuthCookie } from "@/lib/auth"
+import { hashPassword } from "@/lib/auth-server-utils" // Import from auth-server-utils
 import { sendEmail } from "@/lib/mail"
 
 export async function POST(request: Request) {
   try {
     const { name, email, password } = await request.json()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 })
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } })
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
     if (existingUser) {
       return NextResponse.json({ error: "User with this email already exists" }, { status: 409 })
     }
 
-    const hashedPassword = await hashPassword(password)
+    const passwordHash = await hashPassword(password)
 
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        password: hashedPassword,
-        role: "USER", // Default role for new registrations
+        password,
+        role: "USER", // Default role
       },
     })
 
-    const token = await generateToken({ id: newUser.id, email: newUser.email, role: newUser.role })
+    const token = await generateToken({
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      name: newUser.name || undefined,
+    })
     setAuthCookie(token)
 
-    // Send registration confirmation email
+    // Send welcome email
     await sendEmail({
       to: newUser.email,
       subject: "Welcome to MJDAt Solutions!",
-      html: `<p>Hello ${newUser.name || newUser.email},</p><p>Welcome to MJDAt Solutions! Your account has been successfully created.</p><p>You are now logged in.</p>`,
+      html: `<p>Hello ${newUser.name},</p><p>Welcome to MJDAt Solutions! We're excited to have you on board.</p><p>You can now explore our services and job openings.</p><p>Best regards,<br/>The MJDAt Team</p>`,
     })
 
     return NextResponse.json(
-      { message: "Registration successful", user: { id: newUser.id, email: newUser.email, role: newUser.role } },
+      {
+        message: "Registration successful",
+        user: { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role },
+      },
       { status: 201 },
     )
   } catch (error) {

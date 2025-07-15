@@ -1,4 +1,4 @@
-import type React from "react"
+"use client"
 
 export function ArrowLeftIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

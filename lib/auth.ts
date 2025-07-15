@@ -1,5 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@prisma/client";
 
@@ -8,7 +7,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 const JWT_EXPIRES_IN = "7d"; // Token expires in 7 days
 
-interface UserPayload {
+interface UserPayload extends JWTPayload {
   id: string;
   email: string;
   role: Role;
@@ -35,17 +34,6 @@ export const verifyToken = async (
     console.error("Token verification failed:", error);
     return null;
   }
-};
-
-export const hashPassword = async (password: string): Promise<string> => {
-  return bcrypt.hash(password, 10);
-};
-
-export const comparePassword = async (
-  password: string,
-  hash: string
-): Promise<boolean> => {
-  return bcrypt.compare(password, hash);
 };
 
 export const setAuthCookie = (token: string) => {

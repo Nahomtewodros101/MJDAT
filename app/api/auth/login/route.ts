@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import { generateToken, setAuthCookie } from "@/lib/auth"
-import { comparePassword } from "@/lib/auth-server-utils"
 import prisma from "@/lib/prisma"
-import { sendEmail } from "@/lib/mail"
+import { generateToken, setAuthCookie } from "@/lib/auth"
+import { comparePassword } from "@/lib/auth-server-utils" // Import from auth-server-utils
 
 export async function POST(request: Request) {
   try {
@@ -12,23 +11,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+
     if (!user || !(await comparePassword(password, user.password))) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    const token = generateToken({ id: user.id, email: user.email, role: user.role })
-    setAuthCookie(toke)
-
-    // Send login notification email
-    await sendEmail({
-      to: user.email,
-      subject: "Successful Login to MJDAt Solutions",
-      html: `<p>Hello ${user.name || user.email},</p><p>You have successfully logged in to your MJDAt Solutions account.</p><p>If this wasn't you, please contact support immediately.</p>`,
-    })
+    const token = await generateToken({ id: user.id, email: user.email, role: user.role, name: user.name || undefined })
+    setAuthCookie(token)
 
     return NextResponse.json(
-      { message: "Login successful", user: { id: user.id, email: user.email, role: user.role } },
+      { message: "Login successful", user: { id: user.id, email: user.email, name: user.name, role: user.role } },
       { status: 200 },
     )
   } catch (error) {

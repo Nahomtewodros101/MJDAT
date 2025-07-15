@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth" // Corrected import
 import { sendEmail } from "@/lib/mail"
 
 export async function POST(request: Request) {
-  const session = await auth()
+  const session = await getAuthUser()
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.role !== "ADMIN") {
+    // Access role directly from session
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
